@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#f3f6fb"><title>자소서 자동완성</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#17233b;background:#f3f6fb}
+*{box-sizing:border-box}body{margin:0}main{max-width:850px;margin:auto;padding:36px 18px 64px}header{margin-bottom:24px}
+h1{font-size:clamp(1.8rem,5vw,2.5rem);margin:0 0 8px;letter-spacing:-.04em}p{line-height:1.65}
+.muted,.hint{color:#64748b}.panel,.result{background:white;border:1px solid #dbe3ef;border-radius:18px;padding:20px;margin:14px 0}
+.tabs{display:flex;gap:8px;margin:22px 0}.tab{flex:1;padding:13px;border:1px solid #cbd5e1;border-radius:12px;background:white;font-weight:700;cursor:pointer}
+.tab[aria-selected=true],button.primary{background:#2457d6;color:white;border-color:#2457d6}
+label{display:block;font-weight:650;margin:12px 0 6px}input,textarea,select{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:10px;font:inherit;background:#fbfdff;color:#17233b}
+textarea{min-height:100px;resize:vertical}.story{min-height:190px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}button{padding:12px 16px;border:1px solid #cbd5e1;border-radius:11px;background:white;font:inherit;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55;cursor:wait}.primary{width:100%;margin-top:16px}.checks{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.check{padding:12px;border:1px solid #dbe3ef;border-radius:12px;background:#fbfdff}.check label{display:flex;align-items:center;gap:9px;margin:0;cursor:pointer}
+.check input{width:auto}.check textarea{margin-top:10px;min-height:72px}[hidden]{display:none!important}
+.notice{padding:12px 14px;border-radius:12px;background:#fff7e6;color:#805400;font-size:.92rem}
+.status{min-height:24px;color:#52627a}.output{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.85;min-height:120px}
+.small{font-size:.88rem}.pill{display:inline-block;padding:4px 9px;border-radius:99px;background:#eaf0ff;color:#2457d6;font-size:.8rem;font-weight:700}
+footer{margin-top:28px;color:#64748b;font-size:.85rem}
+@media(max-width:560px){main{padding:24px 14px 48px}.grid,.checks{grid-template-columns:1fr}.panel,.result{padding:16px}}
+</style></head>
+<body><main>
+<header><span class="pill">AI 자기소개서 도우미</span><h1>자소서 자동완성</h1>
+<p class="muted">경험을 정리하고, 지원 직무에 맞는 자기소개서 초안을 만들어 보세요.</p></header>
+<section class="panel">
+<h2>AI 설정</h2>
+<p class="notice">AI 생성은 서비스 운영자가 제공하는 AI 연결을 사용합니다. API 사용료는 서비스 운영자에게 발생하며, 악용 방지를 위해 이용 횟수가 제한됩니다. 주민등록번호, 연락처 등 민감한 개인정보는 입력하지 마세요.</p>
+<label for="provider">AI 엔진 선택</label>
+<select id="provider"><option value="anthropic">Claude</option><option value="openai">OpenAI</option></select>
+</section>
+<nav class="tabs" role="tablist"><button class="tab" id="tab-form" role="tab" aria-selected="true">문항 입력</button><button class="tab" id="tab-story" role="tab" aria-selected="false">인생사로 쓰기</button></nav>
+<section id="pane-form" class="panel">
+<h2>지원 정보 및 문항</h2><div class="grid">
+<div><label for="company">지원 회사</label><input id="company" placeholder="예: 삼성전자"></div>
+<div><label for="job">지원 직무</label><input id="job" placeholder="예: 생산관리"></div></div>
+<label for="question">자기소개서 문항</label><textarea id="question" placeholder="회사에서 제시한 문항을 그대로 붙여 넣으세요."></textarea>
+<label for="facts">관련 경험과 사실</label><textarea id="facts" placeholder="본인이 실제로 한 일, 역할, 문제, 행동, 결과를 적어 주세요."></textarea>
+<label for="length">목표 분량 (공백 포함)</label><select id="length"><option value="500">약 500자</option><option value="800">약 800자</option><option value="1000" selected>약 1,000자</option><option value="1500">약 1,500자</option><option value="2000">약 2,000자</option></select>
+<button class="primary" id="make-form">자소서 만들기</button></section>
+<section id="pane-story" class="panel" hidden><h2>나의 이야기</h2>
+<p class="hint">학업, 프로젝트, 아르바이트, 군 복무, 문제 해결, 협업, 실패와 극복 등 실제 경험을 적어 주세요.</p>
+<label for="story">나의 이야기</label><textarea id="story" class="story" placeholder="어릴 때부터 지금까지의 경험을 떠오르는 대로 적어 주세요."></textarea>
+<div class="grid"><div><label for="company2">지원 회사 (선택)</label><input id="company2" placeholder="예: SK하이닉스"></div><div><label for="job2">지원 직무 (선택)</label><input id="job2" placeholder="예: 양산기술"></div></div>
+<label>작성할 항목 선택</label><div class="checks" id="checks"></div><button class="primary" id="make-story">선택한 항목으로 만들기</button></section>
+<section class="result"><h2>생성 결과</h2><p id="status" class="status" role="status"></p>
+<div id="output" class="output">생성된 자기소개서가 여기에 표시됩니다.</div>
+<div class="actions"><button id="copy" disabled>복사하기</button><button id="clear">초기화</button></div><p id="count" class="hint small">공백 포함 0자</p></section>
+<footer>AI가 생성한 초안은 반드시 본인의 실제 경험과 일치하는지 확인한 뒤 제출하세요. 본 서비스는 생성 횟수 제한을 적용합니다.</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const items=[["growth","성장 과정"],["trait","성격의 장단점"],["motive","지원 동기"],["skill","직무 역량·강점"],["exp","대표 경험·성취"],["fail","실패와 극복 경험"],["team","협업·팀워크 경험"],["goal","입사 후 포부"]];
+const checks={};
+items.forEach(([id,label])=>{const wrap=document.createElement("div");wrap.className="check";const lab=document.createElement("label");const cb=document.createElement("input");cb.type="checkbox";const span=document.createElement("span");span.textContent=label;lab.append(cb,span);const ta=document.createElement("textarea");ta.placeholder="이 항목에 반영할 내용 (선택)";ta.hidden=true;cb.addEventListener("change",()=>ta.hidden=!cb.checked);wrap.append(lab,ta);$("checks").append(wrap);checks[id]={cb,ta};});
+function tab(which){const form=which==="form";$("pane-form").hidden=!form;$("pane-story").hidden=form;$("tab-form").setAttribute("aria-selected",String(form));$("tab-story").setAttribute("aria-selected",String(!form));}
+$("tab-form").onclick=()=>tab("form");$("tab-story").onclick=()=>tab("story");
+function setOutput(text){$("output").textContent=text;$("count").textContent=`공백 포함 ${text.length.toLocaleString()}자`;$("copy").disabled=!text.trim();}
+async function generate(prompt,button){button.disabled=true;$("status").textContent="자기소개서를 작성하고 있습니다...";setOutput("");
+try{const res=await fetch("/api/generate",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({provider:$("provider").value,prompt})});const data=await res.json().catch(()=>({}));if(!res.ok)throw new Error(data.error||"생성에 실패했습니다.");setOutput(data.text||"응답 내용이 비어 있습니다.");$("status").textContent="생성이 완료되었습니다. 실제 경험과 사실관계를 확인해 주세요.";}
+catch(e){$("status").textContent=e.message||"오류가 발생했습니다.";setOutput("생성 결과가 없습니다.");}finally{button.disabled=false;}}
+const common=`작성 원칙:
+- 1인칭, 자연스럽고 담백한 한국어로 작성한다.
+- 제공된 사실만 사용하고 수치, 수상, 경력, 역할, 성과를 절대 지어내지 않는다.
+- 경험은 상황-과제-행동-결과의 흐름으로 구체화한다.
+- 근거 없는 회사 찬양과 상투적인 표현을 피한다.
+- 정보가 부족하면 임의로 채우지 말고 [지원자가 보완할 내용]이라고 표시한다.
+- 마크다운 강조 기호 없이 제출 가능한 본문만 출력한다.`;
+$("make-form").onclick=()=>{const company=$("company").value.trim(),job=$("job").value.trim(),q=$("question").value.trim(),facts=$("facts").value.trim(),len=$("length").value;
+if(!q||!facts){$("status").textContent="자기소개서 문항과 관련 경험을 모두 입력해 주세요.";return;}
+const prompt=`당신은 한국어 자기소개서 코치다.\n${common}\n목표 분량: 공백 포함 약 ${len}자.\n지원 회사: ${company||"미입력"}\n지원 직무: ${job||"미입력"}\n자기소개서 문항:\n${q}\n지원자의 실제 경험 및 사실:\n${facts}\n문항의 요구사항에 정확히 답하라.`;
+generate(prompt,$("make-form"));};
+$("make-story").onclick=()=>{const story=$("story").value.trim(),picked=items.filter(([id])=>checks[id].cb.checked);
+if(!picked.length){$("status").textContent="작성할 항목을 하나 이상 선택해 주세요.";return;}
+if(!story&&!picked.some(([id])=>checks[id].ta.value.trim())){$("status").textContent="이야기 또는 항목별 내용을 입력해 주세요.";return;}
+const list=picked.map(([id,label],i)=>`${i+1}. ${label}\n추가 메모: ${checks[id].ta.value.trim()||"없음"}`).join("\n\n");
+const prompt=`당신은 한국어 자기소개서 코치다.\n${common}\n각 항목은 공백 포함 약 400~600자로 작성한다. 정보가 부족하면 짧게 작성하고 보완할 점을 표시한다.\n지원 회사: ${$("company2").value.trim()||"미입력"}\n지원 직무: ${$("job2").value.trim()||"미입력"}\n지원자의 이야기:\n${story||"없음"}\n작성할 항목:\n${list}\n선택한 항목만 순서대로 작성하라.`;
+generate(prompt,$("make-story"));};
+$("copy").onclick=async()=>{try{await navigator.clipboard.writeText($("output").textContent);$("status").textContent="복사했습니다.";}catch{$("status").textContent="복사에 실패했습니다. 결과를 직접 선택해 주세요.";}}
+$("clear").onclick=()=>{setOutput("");$("status").textContent="";};
+</script></body></html>
