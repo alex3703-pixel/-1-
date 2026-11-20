@@ -4,6 +4,12 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#f3f6fb"><title>자소서 자동완성</title>
 <style>
+#gate{position:fixed;inset:0;z-index:9999;background:#f3f6fb;display:flex;align-items:center;justify-content:center;padding:20px}
+#gate .gate-card{width:100%;max-width:420px;background:#fff;border:1px solid #dbe3ef;border-radius:20px;padding:26px;box-shadow:0 18px 50px rgba(20,40,80,.10)}
+#gate h2{margin:0 0 8px}#gate p{color:#64748b;font-size:.93rem}
+#gate button{width:100%;margin-top:12px;background:#2457d6;color:white;border-color:#2457d6}
+#gate-error{min-height:22px;color:#b42318;font-size:.9rem}
+body.locked{overflow:hidden}
 :root{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#17233b;background:#f3f6fb}
 *{box-sizing:border-box}body{margin:0}main{max-width:850px;margin:auto;padding:36px 18px 64px}header{margin-bottom:24px}
 h1{font-size:clamp(1.8rem,5vw,2.5rem);margin:0 0 8px;letter-spacing:-.04em}p{line-height:1.65}
@@ -22,7 +28,19 @@ button:disabled{opacity:.55;cursor:wait}.primary{width:100%;margin-top:16px}.che
 footer{margin-top:28px;color:#64748b;font-size:.85rem}
 @media(max-width:560px){main{padding:24px 14px 48px}.grid,.checks{grid-template-columns:1fr}.panel,.result{padding:16px}}
 </style></head>
-<body><main>
+<body class="locked">
+<div id="gate">
+  <form class="gate-card" id="gate-form">
+    <span class="pill">초대받은 사용자 전용</span>
+    <h2>자소서 자동완성</h2>
+    <p>서비스 운영자에게 받은 접속 비밀번호를 입력해 주세요.</p>
+    <label for="site-password">접속 비밀번호</label>
+    <input id="site-password" type="password" autocomplete="current-password" required placeholder="비밀번호 입력">
+    <div id="gate-error" role="status"></div>
+    <button type="submit" id="gate-submit">입장하기</button>
+  </form>
+</div>
+<main id="app" hidden>
 <header><span class="pill">AI 자기소개서 도우미</span><h1>자소서 자동완성</h1>
 <p class="muted">경험을 정리하고, 지원 직무에 맞는 자기소개서 초안을 만들어 보세요.</p></header>
 <section class="panel">
@@ -52,6 +70,27 @@ footer{margin-top:28px;color:#64748b;font-size:.85rem}
 </main>
 <script>
 const $=id=>document.getElementById(id);
+async function checkSession(){
+  try{
+    const r=await fetch("/api/auth",{method:"GET",credentials:"same-origin"});
+    const d=await r.json();
+    if(d.authenticated) unlockApp();
+  }catch{}
+}
+function unlockApp(){$("gate").hidden=true;$("app").hidden=false;document.body.classList.remove("locked");}
+$("gate-form").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const btn=$("gate-submit"),error=$("gate-error"),password=$("site-password").value;
+  btn.disabled=true;error.textContent="확인 중...";
+  try{
+    const r=await fetch("/api/auth",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json"},body:JSON.stringify({password})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||"비밀번호가 올바르지 않습니다.");
+    $("site-password").value="";error.textContent="";unlockApp();
+  }catch(err){error.textContent=err.message||"인증에 실패했습니다.";}
+  finally{btn.disabled=false;}
+});
+checkSession();
 const items=[["growth","성장 과정"],["trait","성격의 장단점"],["motive","지원 동기"],["skill","직무 역량·강점"],["exp","대표 경험·성취"],["fail","실패와 극복 경험"],["team","협업·팀워크 경험"],["goal","입사 후 포부"]];
 const checks={};
 items.forEach(([id,label])=>{const wrap=document.createElement("div");wrap.className="check";const lab=document.createElement("label");const cb=document.createElement("input");cb.type="checkbox";const span=document.createElement("span");span.textContent=label;lab.append(cb,span);const ta=document.createElement("textarea");ta.placeholder="이 항목에 반영할 내용 (선택)";ta.hidden=true;cb.addEventListener("change",()=>ta.hidden=!cb.checked);wrap.append(lab,ta);$("checks").append(wrap);checks[id]={cb,ta};});

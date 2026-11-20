@@ -1,4 +1,21 @@
 const { Redis } = require("@upstash/redis");
+const crypto = require("crypto");
+
+function validSession(req) {
+  const secret = process.env.SESSION_SECRET;
+  if (!secret) return false;
+  const raw = req.headers.cookie || "";
+  const token = raw.split(";").map(x => x.trim()).find(x => x.startsWith("jasoseo_session="))?.slice("jasoseo_session=".length) || "";
+  let decoded = "";
+  try { decoded = decodeURIComponent(token); } catch { return false; }
+  const [expText, signature] = decoded.split(".");
+  const exp = Number(expText);
+  if (!expText || !signature || !Number.isFinite(exp) || exp < Date.now()) return false;
+  const expected = crypto.createHmac("sha256", secret).update(String(expText)).digest("base64url");
+  const a = crypto.createHash("sha256").update(signature).digest();
+  const b = crypto.createHash("sha256").update(expected).digest();
+  return crypto.timingSafeEqual(a, b);
+}
 
 const json = (res, status, body) => res.status(status).json(body);
 
@@ -32,6 +49,7 @@ async function enforceLimits(req) {
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return json(res, 405, { error: "POST 요청만 허용됩니다." });
+  if (!validSession(req)) return json(res, 401, { error: "접속 비밀번호 인증이 필요합니다. 페이지를 새로고침하고 다시 입장해 주세요." });
   const { provider, prompt } = req.body || {};
   if (!["anthropic", "openai"].includes(provider)) return json(res, 400, { error: "지원하지 않는 AI 제공사입니다." });
   if (typeof prompt !== "string" || !prompt.trim() || prompt.length > 16000) return json(res, 400, { error: "요청 내용은 1~16,000자 사이여야 합니다." });
